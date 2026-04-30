@@ -1,15 +1,4 @@
-import express from "express";
-import { createServer as createViteServer } from "vite";
-import path from "path";
 import { GoogleGenAI } from "@google/genai";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const app = express();
-const PORT = 3000;
-
-app.use(express.json());
 
 const SYSTEM_INSTRUCTION = `You are a highly advanced AI clinical decision support system designed specifically to assist medical doctors and healthcare professionals. 
 
@@ -52,19 +41,22 @@ IF Data completeness score is >= 2 AND Uncertainty Level is NOT HIGH:
 For conversational queries or follow-ups, update the assessment using these exact same rigorous standards.
 Note: DO NOT pretend to be an actual human doctor. Conclude with a strong disclaimer reminding the user that this is an AI support tool.`;
 
-// API routes FIRST
-app.post("/api/chat", async (req, res) => {
+export default async function handler(req: any, res: any) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
   try {
     const { history, message, apiKey } = req.body;
-    
+
     const apiToken = apiKey || process.env.GEMINI_API_KEY;
 
     if (!apiToken) {
       return res.status(500).json({ error: "Gemini API key is not configured. Please provide it in settings." });
     }
-
+    
     const ai = new GoogleGenAI({ apiKey: apiToken.trim() });
-
+    
     const chat = ai.chats.create({
       model: "gemini-3-flash-preview",
       history: history || [],
@@ -77,34 +69,9 @@ app.post("/api/chat", async (req, res) => {
 
     const response = await chat.sendMessage({ message: message });
 
-    res.json({ text: response.text });
+    res.status(200).json({ text: response.text });
   } catch (error: any) {
     console.error("Chat API Error:", error);
     res.status(500).json({ error: error.message || "Failed to generate response" });
   }
-});
-
-async function startServer() {
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    // Production serving
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    // Fix for Express v4 since v5 uses *all
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
 }
-
-startServer();

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Activity, AlertTriangle, Send, Loader2, Bot, User as UserIcon, LogOut, Stethoscope, Plus, MessageSquare, Search, Edit2, Check, X, Download, Upload } from 'lucide-react';
+import { Activity, AlertTriangle, Send, Loader2, Bot, User as UserIcon, LogOut, Stethoscope, Plus, MessageSquare, Search, Edit2, Check, X, Download, Upload, Settings } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { auth, db } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -34,6 +34,14 @@ export default function App() {
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [customApiKey, setCustomApiKey] = useState('');
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('medassist_api_key');
+    if (savedKey) setCustomApiKey(savedKey);
+  }, []);
 
   const saveChatsLocally = (newChats: ChatSession[], uid: string) => {
     setChatSessions(newChats);
@@ -174,7 +182,8 @@ export default function App() {
         },
         body: JSON.stringify({
           history: historyPayload,
-          message: userText
+          message: userText,
+          apiKey: customApiKey || undefined
         })
       });
 
@@ -462,9 +471,14 @@ export default function App() {
                 <div className="text-[11px] text-slate-400 truncate max-w-[120px]">{authUser.email}</div>
               </div>
             </div>
-            <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors" title="Sign Out">
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setShowSettings(true)} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors" title="Settings">
+                <Settings className="w-4 h-4" />
+              </button>
+              <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors" title="Sign Out">
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
@@ -641,6 +655,58 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-slate-500" />
+                Settings
+              </h3>
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Custom Gemini API Key
+              </label>
+              <input 
+                type="password" 
+                value={customApiKey}
+                onChange={e => setCustomApiKey(e.target.value)}
+                placeholder="AIza..."
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow"
+              />
+              <p className="mt-2 text-xs text-slate-500 leading-relaxed">
+                If provided, this key will be used instead of the server default. Your key is stored locally on this device.
+              </p>
+            </div>
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  localStorage.setItem('medassist_api_key', customApiKey);
+                  setShowSettings(false);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
