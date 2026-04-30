@@ -1,0 +1,6 @@
+{
+  "name": "MedAssist AI",
+  "description": "An AI-powered clinical decision support prototype for doctors, using medical literature and Google Search Grounding to evaluate symptoms and history.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
